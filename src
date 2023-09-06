@@ -1,0 +1,217 @@
+#include <iostream>
+#include <conio.h>
+#include <windows.h>
+#include <time.h>
+
+#define SCREEN_WIDTH 90
+#define SCREEN_HEIGHT 26
+#define WIN_WIDTH 70
+#define GAP_SIZE 7
+
+using namespace std;
+
+HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+COORD CursorPosition;
+
+int pipePosition[3];
+int gapPosition[3];
+char birdModel[2][6] = { '/','-','-','o','\\',' ',
+                    '|','_','_','_',' ','>' };
+int birdYPosition = 6;
+int currentScore = 0;
+
+void moveCursorTo(int x, int y)
+{
+    CursorPosition.X = x;
+    CursorPosition.Y = y;
+    SetConsoleCursorPosition(console, CursorPosition);
+}
+
+void showOrHideCursor(bool isVisible, DWORD cursorSize)
+{
+    if (cursorSize == 0)
+        cursorSize = 20;
+
+    CONSOLE_CURSOR_INFO cursorInfo;
+    cursorInfo.bVisible = isVisible;
+    cursorInfo.dwSize = cursorSize;
+    SetConsoleCursorInfo(console, &cursorInfo);
+}
+
+void drawGameBorder()
+{
+    for (int i = 0; i < SCREEN_WIDTH; i++)
+    {
+        moveCursorTo(i, 0);
+        cout << "±";
+        moveCursorTo(i, SCREEN_HEIGHT);
+        cout << "±";
+    }
+
+    for (int i = 0; i < SCREEN_HEIGHT; i++)
+    {
+        moveCursorTo(0, i);
+        cout << "±";
+        moveCursorTo(SCREEN_WIDTH, i);
+        cout << "±";
+    }
+    for (int i = 0; i < SCREEN_HEIGHT; i++)
+    {
+        moveCursorTo(WIN_WIDTH, i);
+        cout << "±";
+    }
+}
+
+void generatePipe(int index)
+{
+    gapPosition[index] = 3 + rand() % 14;
+}
+
+void drawPipe(int index)
+{
+    for (int i = 0; i < gapPosition[index]; i++)
+    {
+        moveCursorTo(WIN_WIDTH - pipePosition[index], i + 1);
+        cout << "***";
+    }
+    for (int i = gapPosition[index] + GAP_SIZE; i < SCREEN_HEIGHT - 1; i++)
+    {
+        moveCursorTo(WIN_WIDTH - pipePosition[index], i + 1);
+        cout << "***";
+    }
+}
+
+void erasePipe(int index)
+{
+    for (int i = 0; i < gapPosition[index]; i++)
+    {
+        moveCursorTo(WIN_WIDTH - pipePosition[index], i + 1);
+        cout << "   ";
+    }
+    for (int i = gapPosition[index] + GAP_SIZE; i < SCREEN_HEIGHT - 1; i++)
+    {
+        moveCursorTo(WIN_WIDTH - pipePosition[index], i + 1);
+        cout << "   ";
+    }
+}
+
+void drawBird()
+{
+    for (int i = 0; i < 2; i++)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            moveCursorTo(j + 2, i + birdYPosition);
+            cout << birdModel[i][j];
+        }
+    }
+}
+
+void eraseBird()
+{
+    for (int i = 0; i < 2; i++)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            moveCursorTo(j + 2, i + birdYPosition);
+            cout << " ";
+        }
+    }
+}
+
+int checkCollision()
+{
+    if (pipePosition[0] >= 61)
+    {
+        if (birdYPosition < gapPosition[0] || birdYPosition > gapPosition[0] + GAP_SIZE)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void displayGameOver()
+{
+    system("cls");
+    cout << endl;
+    cout << "\t\t--------------------------" << endl;
+    cout << "\t\t-------- Game Over -------" << endl;
+    cout << "\t\t--------------------------" << endl
+         << endl;
+    cout << "\t\tPress any key to exit." << endl;
+    getch();
+    exit(0);
+}
+
+void showCurrentScore()
+{
+    moveCursorTo(WIN_WIDTH + 7, 5);
+    cout << "Score: " << currentScore << endl;
+}
+
+void playGame()
+{
+    birdYPosition = 6;
+    currentScore = 0;
+    pipePosition[0] = pipePosition[1] = 4;
+
+    system("cls");
+    drawGameBorder();
+    generatePipe(0);
+    showCurrentScore();
+
+    while (1)
+    {
+        if (kbhit())
+        {
+            char key = getch();
+            if (key == 32)
+            {
+                if (birdYPosition > 3)
+                    birdYPosition -= 3;
+            }
+        }
+
+        drawBird();
+        drawPipe(0);
+        if (checkCollision() == 1)
+        {
+            displayGameOver();
+        }
+        Sleep(100);
+        eraseBird();
+        erasePipe(0);
+        birdYPosition += 1;
+
+        if (birdYPosition > SCREEN_HEIGHT - 2)
+        {
+            displayGameOver();
+        }
+
+        pipePosition[0] += 2;
+
+        if (pipePosition[0] >= 40 && pipePosition[0] < 42)
+        {
+            pipePosition[1] = 4;
+            generatePipe(1);
+        }
+        if (pipePosition[0] > 68)
+        {
+            currentScore++;
+            showCurrentScore();
+            pipePosition[0] = pipePosition[1];
+            gapPosition[0] = gapPosition[1];
+        }
+    }
+}
+
+int main()
+{
+    showOrHideCursor(0, 0);
+    srand((unsigned)time(NULL));
+
+    playGame();
+
+    return 0;
+}
